@@ -1,9 +1,8 @@
 package de.randombyte.baustellalightcontrol
 
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-public class Config(
+data class Config(
     val bindings: Map<String, Byte>
 )

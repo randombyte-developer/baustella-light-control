@@ -1,8 +1,6 @@
 package de.randombyte.baustellalightcontrol
 
 import kotlinx.serialization.KSerializer
-import kotlinx.serialization.SerializationStrategy
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
 import java.io.File
@@ -10,7 +8,7 @@ import java.io.File
 class ConfigHolder<T : Any>(
     private val file: File,
     private val serializer: KSerializer<T>,
-    private val default: T
+    default: T
 ) {
 
     companion object {
@@ -21,7 +19,7 @@ class ConfigHolder<T : Any>(
 
     fun load() {
         if (!file.exists()) save()
-        Json.decodeFromString(serializer, file.readText())
+        config = Json.decodeFromString(serializer, file.readText())
     }
 
     fun save() {
