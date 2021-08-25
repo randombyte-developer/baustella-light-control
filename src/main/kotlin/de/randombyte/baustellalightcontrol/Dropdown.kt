@@ -17,14 +17,19 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun Dropdown(items: List<String>, onSelect: (item: String) -> Unit) {
+fun Dropdown(
+    modifier: Modifier,
+    items: List<String>,
+    defaultSelectedIndex: Int,
+    onSelect: (item: String, index: Int) -> Unit
+) {
     var expanded by remember { mutableStateOf(false) }
-    var selectedIndex by remember { mutableStateOf(0) }
+    var selectedIndex by remember { mutableStateOf(defaultSelectedIndex) }
 
     var rowWidth by remember { mutableStateOf(0.dp) }
 
     Column(
-        modifier = Modifier.width(150.dp)
+        modifier = modifier
     ) {
         Row(
             modifier = Modifier
@@ -51,7 +56,7 @@ fun Dropdown(items: List<String>, onSelect: (item: String) -> Unit) {
                     onClick = {
                         selectedIndex = index
                         expanded = false
-                        onSelect(items[index])
+                        onSelect(items[index], index)
                     }
                 ) {
                     Text(text)

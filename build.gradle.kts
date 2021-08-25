@@ -5,6 +5,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
     kotlin("jvm") version "1.5.10"
     id("org.jetbrains.compose") version "0.4.0"
+    kotlin("plugin.serialization") version "1.5.10"
 }
 
 group = "de.randombyte"
@@ -18,7 +19,7 @@ repositories {
 dependencies {
     implementation(compose.desktop.currentOs)
     implementation("com.fazecast:jSerialComm:[2.0.0,3.0.0)")
-
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.2.2")
 }
 
 tasks.withType<KotlinCompile>() {
