@@ -2,8 +2,6 @@ package de.randombyte.baustellalightcontrol
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -24,6 +22,8 @@ import com.fazecast.jSerialComm.SerialPort
 import com.fazecast.jSerialComm.SerialPortEvent
 import com.fazecast.jSerialComm.SerialPortPacketListener
 import de.tobiaserichsen.tevm.TeVirtualMIDI
+import de.tobiaserichsen.tevm.TeVirtualMIDI.TE_VM_FLAGS_INSTANTIATE_TX_ONLY
+import de.tobiaserichsen.tevm.TeVirtualMIDI.TE_VM_FLAGS_PARSE_TX
 import java.io.File
 import kotlin.system.exitProcess
 
@@ -32,7 +32,7 @@ fun main() = application {
     // styling for the menu bar, may be removed in future compose desktop versions
     System.setProperty("skiko.rendering.laf.global", "true")
 
-    val midiPort = TeVirtualMIDI("BaustellaLightControl")
+    val midiPort = TeVirtualMIDI("BaustellaLightControl", 65535, TE_VM_FLAGS_PARSE_TX or TE_VM_FLAGS_INSTANTIATE_TX_ONLY)
 
     val configHolder = ConfigHolder.init(
         file = File("settings.conf"),
@@ -53,8 +53,7 @@ fun main() = application {
         var ports by remember { mutableStateOf(listOf<SerialPort>()) }
         var selectedPort by remember { mutableStateOf<SerialPort?>(null) }
 
-        // <timestamp, serialMessage
-        var messages by remember { mutableStateOf(mapOf<Long, String>()) }
+        var lastSerialData by remember { mutableStateOf("") }
 
         MaterialTheme {
             MenuBar {
@@ -89,16 +88,11 @@ fun main() = application {
                             resizable = false,
                             initialAlignment = Alignment.Center
                         ) {
-                            val dialogOpenedAt by remember { mutableStateOf(System.currentTimeMillis()) }
-                            if (messages.any { (timestamp, _) -> timestamp > dialogOpenedAt }) {
-                                // check this for safety, sometimes learningOpened is false and this logic is executed, even if after the first call the dialog should be closed
-                                if (learningOpened) {
-                                    val midiValue = bindings.getValue(bindingOpenForEditing)
-                                    bindings -= bindingOpenForEditing
-                                    val learnedButton = messages.maxByOrNull { (timestamp, _) -> timestamp }!!.value
-                                    bindings += learnedButton to midiValue
-                                }
-
+                            // check this for safety, sometimes learningOpened is false and this logic is executed, even if after the first call the dialog should be closed
+                            if (learningOpened && lastSerialData != "") {
+                                val midiValue = bindings.getValue(bindingOpenForEditing)
+                                bindings -= bindingOpenForEditing
+                                bindings += lastSerialData to midiValue
                                 learningOpened = false
                             }
 
@@ -119,7 +113,7 @@ fun main() = application {
                         Column {
                             Button(
                                 onClick = {
-                                    bindings += "" to MidiNotes.C3.byte
+                                    bindings += "" to MidiNotes.C.byte
                                 },
                                 modifier = Modifier.align(Alignment.End)
                             ) {
@@ -129,17 +123,18 @@ fun main() = application {
                             Column(
                                 modifier = Modifier.border(2.dp, Color.Black, MaterialTheme.shapes.large)
                             ) {
-                                bindings.forEach { (remoteValue, midiValue) ->
+                                bindings.entries.sortedBy { (serialData, _) -> serialData }.forEach { (serialData, midiValue) ->
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
                                         modifier = Modifier.width(300.dp),
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        Text(remoteValue, modifier = Modifier.width(128.dp))
+                                        Text(serialData, modifier = Modifier.width(128.dp))
                                         IconButton(
                                             onClick = {
                                                 learningOpened = true
-                                                bindingOpenForEditing = remoteValue
+                                                lastSerialData = ""
+                                                bindingOpenForEditing = serialData
                                             }
                                         ) {
                                             Icon(Icons.Filled.Edit, "Learn")
@@ -147,14 +142,14 @@ fun main() = application {
                                         Dropdown(
                                             modifier = Modifier.width(96.dp),
                                             items = MidiNotes.mapping.values.toList(),
-                                            defaultSelectedIndex = MidiNotes.mapping.keys.indexOf(midiValue),
+                                            selectedIndex = MidiNotes.mapping.keys.indexOf(midiValue),
                                             onSelect = { noteName, _ ->
-                                                bindings += remoteValue to MidiNotes.reversedMapping.getValue(noteName)
+                                                bindings += serialData to MidiNotes.reversedMapping.getValue(noteName)
                                             }
                                         )
                                         IconButton(
                                             onClick = {
-                                                bindings -= remoteValue
+                                                bindings -= serialData
                                             }
                                         ) {
                                             Icon(Icons.Filled.Delete, "Delete")
@@ -177,7 +172,7 @@ fun main() = application {
                     Dropdown(
                         modifier = Modifier.weight(1f),
                         items = ports.map { it.descriptivePortName },
-                        defaultSelectedIndex = 0,
+                        selectedIndex = selectedPort?.let { currentPort -> ports.indexOfFirst { port -> port.systemPortName == currentPort.systemPortName }} ?: 0,
                         onSelect = { name, index ->
                             if (ports[index].descriptivePortName != name) throw RuntimeException("Port-Name is not in sync!")
 
@@ -190,7 +185,13 @@ fun main() = application {
                                     override fun getPacketSize() = 8
 
                                     override fun serialEvent(event: SerialPortEvent) {
-                                        messages += System.currentTimeMillis() to event.receivedData.decodeToString().dropLast(1)
+                                        val newSerialData = event.receivedData.decodeToString().dropLast(1)
+                                        if (newSerialData == lastSerialData) return
+
+                                        configHolder.config.bindings[newSerialData]?.also { midiValue ->
+                                            midiPort.sendCommand(byteArrayOf(0x90.toByte(), midiValue, 0x7F.toByte()))
+                                        }
+                                        lastSerialData = newSerialData
                                     }
                                 })
                             }
@@ -205,13 +206,7 @@ fun main() = application {
                     }
                 }
 
-                Column(
-                    modifier = Modifier.verticalScroll(rememberScrollState())
-                ) {
-                    messages.forEach { (_, message) ->
-                        Text(message)
-                    }
-                }
+                Text(lastSerialData)
             }
         }
     }
