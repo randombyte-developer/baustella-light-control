@@ -25,6 +25,7 @@ import de.tobiaserichsen.tevm.TeVirtualMIDI
 import de.tobiaserichsen.tevm.TeVirtualMIDI.TE_VM_FLAGS_INSTANTIATE_TX_ONLY
 import de.tobiaserichsen.tevm.TeVirtualMIDI.TE_VM_FLAGS_PARSE_TX
 import java.io.File
+import javax.swing.ImageIcon
 import kotlin.system.exitProcess
 
 @ExperimentalComposeUiApi
@@ -43,9 +44,12 @@ fun main() = application {
     configHolder.load()
 
     Window(
+        title = "BaustellaLightControl",
         onCloseRequest = { exitProcess(0) },
+        state = WindowState(size = WindowSize(width = 800.dp, height = 400.dp)),
+        initialAlignment = Alignment.Center,
         resizable = false,
-        initialAlignment = Alignment.Center
+        icon = ImageIcon(MidiNotes.javaClass.getResource("/new-moon.png").readBytes()).image
     ) {
         var settingsOpened by remember { mutableStateOf(false) }
         var learningOpened by remember { mutableStateOf(false) }
@@ -115,7 +119,7 @@ fun main() = application {
                                 onClick = {
                                     bindings += "" to MidiNotes.C.byte
                                 },
-                                modifier = Modifier.align(Alignment.End)
+                                modifier = Modifier.align(Alignment.End).padding(vertical = 8.dp)
                             ) {
                                 Icon(Icons.Filled.Add, "Add")
                             }
@@ -129,7 +133,7 @@ fun main() = application {
                                         modifier = Modifier.width(300.dp),
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        Text(serialData, modifier = Modifier.width(128.dp))
+                                        Text(serialData, modifier = Modifier.width(128.dp).padding(start = 16.dp))
                                         IconButton(
                                             onClick = {
                                                 learningOpened = true
