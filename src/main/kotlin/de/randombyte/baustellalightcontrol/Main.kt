@@ -181,17 +181,32 @@ fun main() = application {
 
                             if (selectedPort!!.openPort()) {
                                 selectedPort!!.addDataListener(object : SerialPortPacketListener {
+                                    private val receivedData = StringBuilder()
+
                                     override fun getListeningEvents() = SerialPort.LISTENING_EVENT_DATA_RECEIVED
-                                    override fun getPacketSize() = 8
+                                    override fun getPacketSize() = 1
 
                                     override fun serialEvent(event: SerialPortEvent) {
-                                        val newSerialData = event.receivedData.decodeToString().dropLast(1)
-                                        if (newSerialData == lastSerialData) return
+                                        event.receivedData.map { String(byteArrayOf(it)) }.forEach { newChar ->
+                                            if (newChar in (0..9).map(Int::toString)) {
+                                                receivedData.append(newChar)
+                                                return@forEach
+                                            }
 
-                                        configHolder.config.bindings[newSerialData]?.also { midiValue ->
-                                            midiPort.sendCommand(byteArrayOf(0x90.toByte(), midiValue, 0x7F.toByte()))
+                                            if (newChar == ";") {
+                                                val newSerialData = receivedData.toString()
+                                                receivedData.clear()
+
+                                                if (newSerialData.length == 7) {
+                                                    if (newSerialData == lastSerialData) return@forEach
+
+                                                    configHolder.config.bindings[newSerialData]?.also { midiValue ->
+                                                        midiPort.sendCommand(byteArrayOf(0x90.toByte(), midiValue, 0x7F.toByte()))
+                                                    }
+                                                    lastSerialData = newSerialData
+                                                }
+                                            }
                                         }
-                                        lastSerialData = newSerialData
                                     }
                                 })
                             }
