@@ -27,6 +27,7 @@ import de.tobiaserichsen.tevm.TeVirtualMIDI.TE_VM_FLAGS_PARSE_TX
 import java.io.File
 import javax.swing.ImageIcon
 import kotlin.system.exitProcess
+import de.randombyte.baustellalightcontrol.Config.Companion.replaceAt
 
 @ExperimentalComposeUiApi
 fun main() = application {
@@ -38,7 +39,7 @@ fun main() = application {
     val configHolder = ConfigHolder.init(
         file = File("settings.conf"),
         default = Config(
-            bindings = emptyMap()
+            bindings = emptyList()
         )
     )
     configHolder.load()
@@ -68,7 +69,7 @@ fun main() = application {
 
             if (settingsOpened) {
                 var bindings by remember { mutableStateOf(configHolder.config.bindings) }
-                var bindingOpenForEditing by remember { mutableStateOf("") }
+                var bindingOpenForEditingIndex by remember { mutableStateOf<Int?>(null) }
 
                 Dialog(
                     onCloseRequest = {
@@ -93,11 +94,11 @@ fun main() = application {
                             initialAlignment = Alignment.Center
                         ) {
                             // check this for safety, sometimes learningOpened is false and this logic is executed, even if after the first call the dialog should be closed
-                            if (learningOpened && lastSerialData != "") {
-                                val midiValue = bindings.getValue(bindingOpenForEditing)
-                                bindings -= bindingOpenForEditing
-                                bindings += lastSerialData to midiValue
+                            if (learningOpened && bindingOpenForEditingIndex != null && lastSerialData != "") {
+                                val (_, midiValue) = bindings[bindingOpenForEditingIndex!!]
+                                bindings = bindings.replaceAt(bindingOpenForEditingIndex!!, lastSerialData to midiValue)
                                 learningOpened = false
+                                bindingOpenForEditingIndex = null
                             }
 
                             Row(
@@ -127,7 +128,7 @@ fun main() = application {
                             Column(
                                 modifier = Modifier.border(2.dp, Color.Black, MaterialTheme.shapes.large)
                             ) {
-                                bindings.entries.sortedBy { (serialData, _) -> serialData }.forEach { (serialData, midiValue) ->
+                                bindings.sortedBy { (serialData, _) -> serialData }.forEachIndexed { index, (serialData, midiValue) ->
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
                                         modifier = Modifier.width(300.dp),
@@ -138,7 +139,7 @@ fun main() = application {
                                             onClick = {
                                                 learningOpened = true
                                                 lastSerialData = ""
-                                                bindingOpenForEditing = serialData
+                                                bindingOpenForEditingIndex = index
                                             }
                                         ) {
                                             Icon(Icons.Filled.Edit, "Learn")
@@ -148,12 +149,12 @@ fun main() = application {
                                             items = MidiNotes.mapping.values.toList(),
                                             selectedIndex = MidiNotes.mapping.keys.indexOf(midiValue),
                                             onSelect = { noteName, _ ->
-                                                bindings += serialData to MidiNotes.reversedMapping.getValue(noteName)
+                                                bindings = bindings.replaceAt(index, serialData to MidiNotes.reversedMapping.getValue(noteName))
                                             }
                                         )
                                         IconButton(
                                             onClick = {
-                                                bindings -= serialData
+                                                bindings = bindings.toMutableList().apply { removeAt(index) }
                                             }
                                         ) {
                                             Icon(Icons.Filled.Delete, "Delete")
@@ -204,9 +205,11 @@ fun main() = application {
                                                 if (newSerialData.length == 7) {
                                                     if (newSerialData == lastSerialData) return@forEach
 
-                                                    configHolder.config.bindings[newSerialData]?.also { midiValue ->
-                                                        midiPort.sendCommand(byteArrayOf(0x90.toByte(), midiValue, 0x7F.toByte()))
-                                                    }
+                                                    configHolder.config.bindings
+                                                        .filter { (data, _) -> data == newSerialData }
+                                                        .forEach { (_, midiValue) ->
+                                                            midiPort.sendCommand(byteArrayOf(0x90.toByte(), midiValue, 0x7F.toByte()))
+                                                        }
                                                     lastSerialData = newSerialData
                                                 }
                                             }
