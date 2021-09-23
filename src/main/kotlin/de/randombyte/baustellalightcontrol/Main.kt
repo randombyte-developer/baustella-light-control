@@ -21,13 +21,13 @@ import androidx.compose.ui.window.*
 import com.fazecast.jSerialComm.SerialPort
 import com.fazecast.jSerialComm.SerialPortEvent
 import com.fazecast.jSerialComm.SerialPortPacketListener
+import de.randombyte.baustellalightcontrol.Config.Companion.replaceAt
 import de.tobiaserichsen.tevm.TeVirtualMIDI
 import de.tobiaserichsen.tevm.TeVirtualMIDI.TE_VM_FLAGS_INSTANTIATE_TX_ONLY
 import de.tobiaserichsen.tevm.TeVirtualMIDI.TE_VM_FLAGS_PARSE_TX
 import java.io.File
 import javax.swing.ImageIcon
 import kotlin.system.exitProcess
-import de.randombyte.baustellalightcontrol.Config.Companion.replaceAt
 
 @ExperimentalComposeUiApi
 fun main() = application {
@@ -78,8 +78,8 @@ fun main() = application {
                         settingsOpened = false
                     },
                     title = "Settings",
-                    state = DialogState(size = WindowSize(width = 400.dp, height = 500.dp)),
-                    resizable = false,
+                    state = DialogState(size = WindowSize(width = 400.dp, height = 800.dp)),
+                    resizable = true,
                     initialAlignment = Alignment.Center
                 ) {
 
@@ -128,7 +128,8 @@ fun main() = application {
                             Column(
                                 modifier = Modifier.border(2.dp, Color.Black, MaterialTheme.shapes.large)
                             ) {
-                                bindings.sortedBy { (serialData, _) -> serialData }.forEachIndexed { index, (serialData, midiValue) ->
+                                bindings.mapIndexed { index, entry -> index to entry }.sortedBy { (index, entry) -> entry.first }.forEach { (trueIndex, entry) ->
+                                    val (serialData, midiValue) = entry
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
                                         modifier = Modifier.width(300.dp),
@@ -139,7 +140,7 @@ fun main() = application {
                                             onClick = {
                                                 learningOpened = true
                                                 lastSerialData = ""
-                                                bindingOpenForEditingIndex = index
+                                                bindingOpenForEditingIndex = trueIndex
                                             }
                                         ) {
                                             Icon(Icons.Filled.Edit, "Learn")
@@ -149,12 +150,12 @@ fun main() = application {
                                             items = MidiNotes.mapping.values.toList(),
                                             selectedIndex = MidiNotes.mapping.keys.indexOf(midiValue),
                                             onSelect = { noteName, _ ->
-                                                bindings = bindings.replaceAt(index, serialData to MidiNotes.reversedMapping.getValue(noteName))
+                                                bindings = bindings.replaceAt(trueIndex, serialData to MidiNotes.reversedMapping.getValue(noteName))
                                             }
                                         )
                                         IconButton(
                                             onClick = {
-                                                bindings = bindings.toMutableList().apply { removeAt(index) }
+                                                bindings = bindings.toMutableList().apply { removeAt(trueIndex) }
                                             }
                                         ) {
                                             Icon(Icons.Filled.Delete, "Delete")
