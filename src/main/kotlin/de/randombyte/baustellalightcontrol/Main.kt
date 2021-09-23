@@ -59,6 +59,7 @@ fun main() = application {
         var selectedPort by remember { mutableStateOf<SerialPort?>(null) }
 
         var lastSerialData by remember { mutableStateOf("") }
+        var lastSentMidiData by remember { mutableStateOf(listOf<Byte>()) }
 
         MaterialTheme {
             MenuBar {
@@ -206,11 +207,14 @@ fun main() = application {
                                                 if (newSerialData.length == 7) {
                                                     if (newSerialData == lastSerialData) return@forEach
 
-                                                    configHolder.config.bindings
-                                                        .filter { (data, _) -> data == newSerialData }
+                                                    val dataList = configHolder.config.bindings.filter { (data, _) -> data == newSerialData }
+                                                    dataList
+                                                        // don't send if it would have been sent the last time (don't deactive a button that was activated last time)
+                                                        .filter { (_, midi) -> midi !in lastSentMidiData }
                                                         .forEach { (_, midiValue) ->
                                                             midiPort.sendCommand(byteArrayOf(0x90.toByte(), midiValue, 0x7F.toByte()))
                                                         }
+                                                    lastSentMidiData = dataList.map { (_, midi) -> midi }.toList()
                                                     lastSerialData = newSerialData
                                                 }
                                             }
