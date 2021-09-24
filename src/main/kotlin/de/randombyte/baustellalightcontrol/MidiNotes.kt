@@ -1,18 +1,18 @@
 package de.randombyte.baustellalightcontrol
 
 enum class MidiNotes(val byte: Byte, val noteName: String) {
-    C(0, "C"),
-    C_SHARP(1, "C#"),
-    D(2, "D"),
-    D_SHARP(3, "D#"),
-    E(4, "E"),
-    F(5, "F"),
-    F_SHARP(6, "F#"),
-    G(7, "G"),
-    G_SHARP(8, "G#"),
-    A(9, "A"),
-    A_SHARP(10, "A#"),
-    B(11, "B");
+    C(0, "129"),
+    C_SHARP(1, "130"),
+    D(2, "131"),
+    D_SHARP(3, "132"),
+    E(4, "133"),
+    F(5, "134"),
+    F_SHARP(6, "135"),
+    G(7, "136"),
+    G_SHARP(8, "137"),
+    A(9, "138"),
+    A_SHARP(10, "139"),
+    B(11, "140");
 
     companion object {
         val mapping = values().associate { it.byte to it.noteName }
