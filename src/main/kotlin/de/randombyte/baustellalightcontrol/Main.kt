@@ -61,6 +61,8 @@ fun main() = application {
         var lastSerialData by remember { mutableStateOf("") }
         var lastSentMidiData by remember { mutableStateOf(listOf<Byte>()) }
 
+        var debugText by remember { mutableStateOf(("")) }
+
         MaterialTheme {
             MenuBar {
                 Menu("Edit") {
@@ -208,11 +210,13 @@ fun main() = application {
                                                     if (newSerialData == lastSerialData) return@forEach
 
                                                     val dataList = configHolder.config.bindings.filter { (data, _) -> data == newSerialData }
+                                                    debugText = ""
                                                     dataList
-                                                        // don't send if it would have been sent the last time (don't deactive a button that was activated last time)
+                                                        // don't send if it would have been sent the last time (don't deactivate a button that was activated last time)
                                                         .filter { (_, midi) -> midi !in lastSentMidiData }
                                                         .forEach { (_, midiValue) ->
                                                             midiPort.sendCommand(byteArrayOf(0x90.toByte(), midiValue, 0x7F.toByte()))
+                                                            debugText += MidiNotes.mapping[midiValue] + "\n"
                                                         }
                                                     lastSentMidiData = dataList.map { (_, midi) -> midi }.toList()
                                                     lastSerialData = newSerialData
@@ -234,6 +238,7 @@ fun main() = application {
                 }
 
                 Text(lastSerialData)
+                Text(debugText)
             }
         }
     }
