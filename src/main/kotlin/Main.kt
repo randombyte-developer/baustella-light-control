@@ -9,9 +9,11 @@ import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.application
 import java.lang.Exception
@@ -41,8 +43,14 @@ fun MainWindow(
     val state by remember { mutableStateOf(AppState()) }
 
     Window(
-        onCloseRequest = onCloseRequest,
-        state = WindowState(width = 300.dp, height = 100.dp),
+        onCloseRequest = {
+            if (state.oscPortStatus != OscPortStatus.Opened) onCloseRequest()
+        },
+        state = WindowState(
+            width = 300.dp,
+            height = 100.dp,
+            position = WindowPosition(Alignment.Center)
+        ),
         title = "Baustella Light Control",
         icon = painterResource("new-moon.png"),
         resizable = false
@@ -55,12 +63,26 @@ fun MainWindow(
                     .fillMaxSize()
                     .padding(16.dp)
             ) {
-                Text(
-                    text = "Status: ${state.oscPortStatus.text}"
-                )
+                Row(
+                    horizontalArrangement = Arrangement.Start
+                ) {
+                    Icon(
+                        when (state.oscPortStatus) {
+                            OscPortStatus.Closed, OscPortStatus.Opened -> painterResource("circle.svg")
+                            OscPortStatus.Error -> painterResource("error.svg")
+                        },
+                        tint = when (state.oscPortStatus) {
+                            OscPortStatus.Closed -> Color(0xFFFF8800) // orange
+                            OscPortStatus.Opened -> Color.Green
+                            OscPortStatus.Error -> Color.Red
+                        },
+                        modifier = Modifier.padding(end = 16.dp),
+                        contentDescription = "Status"
+                    )
+                    Text("Status: ${state.oscPortStatus.text}")
+                }
 
                 Row(
-                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(
                         enabled = state.oscPort == null,
