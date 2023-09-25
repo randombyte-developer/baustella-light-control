@@ -1,9 +1,12 @@
 pluginManagement {
     repositories {
+        mavenCentral()
         gradlePluginPortal()
-        maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
     }
-    
 }
-rootProject.name = "baustella-light-control"
 
+plugins {
+    id("org.gradle.toolchains.foojay-resolver-convention") version "0.5.0"
+}
+
+rootProject.name = "baustella-light-control"
