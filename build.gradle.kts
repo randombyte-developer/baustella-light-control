@@ -1,4 +1,5 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+import org.jetbrains.kotlin.ir.backend.js.compile
 
 plugins {
     kotlin("jvm")
@@ -10,17 +11,18 @@ version = "2.0.0"
 
 repositories {
     mavenCentral()
-    maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
     google()
+    maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
 }
 
 dependencies {
     implementation(compose.desktop.currentOs)
+    implementation("com.illposed.osc:javaosc-core:0.8")
 }
 
 compose.desktop {
     application {
-        mainClass = "MainKt"
+        mainClass = "de.randombyte.baustellalightcontrol.MainKt"
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
