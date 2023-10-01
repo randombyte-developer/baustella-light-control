@@ -4,6 +4,7 @@ import org.jetbrains.kotlin.ir.backend.js.compile
 plugins {
     kotlin("jvm")
     id("org.jetbrains.compose")
+    kotlin("plugin.serialization") version "1.9.10"
 }
 
 group = "de.randombyte"
@@ -17,6 +18,7 @@ repositories {
 
 dependencies {
     implementation(compose.desktop.currentOs)
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
     implementation("com.illposed.osc:javaosc-core:0.8")
 }
 

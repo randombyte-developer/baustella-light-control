@@ -33,12 +33,20 @@ private enum class OscPortStatus(val text: String) {
 private class AppState {
     var oscPort by mutableStateOf<OscPort?>(null)
     var oscPortStatus by mutableStateOf(OscPortStatus.Closed)
+    val rtl433 = Rtl433(onSignal = { data ->
+        oscPort?.send("/QlcPlus/$data", 1)
+    })
+
+    init {
+        rtl433.init()
+        rtl433.start()
+    }
 }
 
 @Composable
 @Preview
 fun MainWindow(
-    onCloseRequest: () -> Unit,
+    onCloseRequest: () -> Unit
 ) {
     val state by remember { mutableStateOf(AppState()) }
 
@@ -47,7 +55,7 @@ fun MainWindow(
             if (state.oscPortStatus != OscPortStatus.Opened) onCloseRequest()
         },
         state = WindowState(
-            width = 300.dp,
+            width = 350.dp,
             height = 100.dp,
             position = WindowPosition(Alignment.Center)
         ),
