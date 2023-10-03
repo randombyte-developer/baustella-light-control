@@ -1,29 +1,25 @@
-import org.jetbrains.compose.compose
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jetbrains.kotlin.ir.backend.js.compile
 
 plugins {
-    kotlin("jvm") version "1.5.10"
-    id("org.jetbrains.compose") version "0.4.0"
-    kotlin("plugin.serialization") version "1.5.10"
+    kotlin("jvm")
+    id("org.jetbrains.compose")
+    kotlin("plugin.serialization") version "1.9.10"
 }
 
 group = "de.randombyte"
-version = "1.3.0"
+version = "2.0.0"
 
 repositories {
     mavenCentral()
+    google()
     maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
 }
 
 dependencies {
     implementation(compose.desktop.currentOs)
-    implementation("com.fazecast:jSerialComm:[2.0.0,3.0.0)")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.2.2")
-}
-
-tasks.withType<KotlinCompile> {
-    kotlinOptions.jvmTarget = "11"
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
+    implementation("com.illposed.osc:javaosc-core:0.8")
 }
 
 val fatJar = task("fatJar", type = Jar::class) {
@@ -45,10 +41,11 @@ tasks {
 compose.desktop {
     application {
         mainClass = "de.randombyte.baustellalightcontrol.MainKt"
+
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "baustella-light-control"
-            packageVersion = "1.0.0"
+            packageVersion = "2.0.0"
         }
     }
 }
