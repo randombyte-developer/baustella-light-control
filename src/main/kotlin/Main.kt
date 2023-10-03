@@ -90,8 +90,7 @@ fun MainWindow(
                     Text("Status: ${state.oscPortStatus.text}")
                 }
 
-                Row(
-                ) {
+                Row {
                     IconButton(
                         enabled = state.oscPort == null,
                         onClick = {
