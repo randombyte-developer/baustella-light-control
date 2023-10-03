@@ -1,0 +1,16 @@
+name: Build
+
+on: [push, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: gradle/gradle-build-action@v2
+      - run: ./gradlew build
+      - uses: actions/upload-artifact@v3
+        with:
+          name: build
+          path: ./build/libs/baustella-light-control-fat-*.jar
+          if-no-files-found: error
