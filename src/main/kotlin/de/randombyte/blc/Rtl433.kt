@@ -1,4 +1,4 @@
-package de.randombyte.baustellalightcontrol
+package de.randombyte.baustellalightcontrol.de.randombyte.blc
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json

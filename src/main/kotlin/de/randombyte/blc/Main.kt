@@ -1,4 +1,4 @@
-package de.randombyte.baustellalightcontrol
+package de.randombyte.baustellalightcontrol.de.randombyte.blc
 
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.layout.Arrangement
@@ -16,7 +16,7 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.application
-import java.lang.Exception
+import de.randombyte.blc.midi.Akai
 
 fun main() = application {
     MainWindow(
@@ -24,18 +24,18 @@ fun main() = application {
     )
 }
 
-private enum class OscPortStatus(val text: String) {
-    Closed("Closed"),
-    Opened("Opened"),
+private enum class Status(val text: String) {
+    Ready("Ready"),
+    Started("Started"),
     Error("Error")
 }
 
 private class AppState {
-    var oscPort by mutableStateOf<OscPort?>(null)
-    var oscPortStatus by mutableStateOf(OscPortStatus.Closed)
+    var status by mutableStateOf(Status.Ready)
     val rtl433 = Rtl433(onSignal = { data ->
         oscPort?.send("/QlcPlus/$data", 1)
     })
+    var akai by mutableStateOf<Akai?>(null)
 
     init {
         rtl433.init()
@@ -52,7 +52,7 @@ fun MainWindow(
 
     Window(
         onCloseRequest = {
-            if (state.oscPortStatus != OscPortStatus.Opened) onCloseRequest()
+            if (state.status != Status.Started) onCloseRequest()
         },
         state = WindowState(
             width = 350.dp,
@@ -75,45 +75,48 @@ fun MainWindow(
                     horizontalArrangement = Arrangement.Start
                 ) {
                     Icon(
-                        when (state.oscPortStatus) {
-                            OscPortStatus.Closed, OscPortStatus.Opened -> painterResource("circle.svg")
-                            OscPortStatus.Error -> painterResource("error.svg")
+                        when (state.status) {
+                            Status.Ready, Status.Started -> painterResource("circle.svg")
+                            Status.Error -> painterResource("error.svg")
                         },
-                        tint = when (state.oscPortStatus) {
-                            OscPortStatus.Closed -> Color(0xFFFF8800) // orange
-                            OscPortStatus.Opened -> Color.Green
-                            OscPortStatus.Error -> Color.Red
+                        tint = when (state.status) {
+                            Status.Ready -> Color(0xFFFF8800) // orange
+                            Status.Started -> Color.Green
+                            Status.Error -> Color.Red
                         },
                         modifier = Modifier.padding(end = 16.dp),
                         contentDescription = "Status"
                     )
-                    Text("Status: ${state.oscPortStatus.text}")
+                    Text("Status: ${state.status.text}")
                 }
 
                 Row {
                     IconButton(
-                        enabled = state.oscPort == null,
+                        enabled = state.akai == null,
                         onClick = {
-                            try {
-                                state.oscPort = OscPort()
-                                state.oscPortStatus = OscPortStatus.Opened
-                            } catch (ex: Exception) {
-                                state.oscPortStatus = OscPortStatus.Error
-                            }
+                            state.akai = Akai.findBestMatch()
+                            val openSuccess = state.akai?.open(
+                                onSignal = { signal ->
+                                    // TODO: forward normal signals to out Midi
+                                },
+                                onClose = {
+                                    println("Closing because input devices closed")
+                                    state.akai?.close()
+                                    state.akai = null
+                                    state.status = Status.Error
+                                }
+                            )
+                            state.status = if (state.akai == null || openSuccess != true) Status.Error else Status.Started
                         }
                     ) {
                         Icon(painterResource("play-arrow.svg"), contentDescription = "Start")
                     }
                     IconButton(
-                        enabled = state.oscPort != null,
+                        enabled = state.akai != null,
                         onClick = {
-                            try {
-                                state.oscPort?.close()
-                                state.oscPort = null
-                                state.oscPortStatus = OscPortStatus.Closed
-                            } catch (ex: Exception) {
-                                state.oscPortStatus = OscPortStatus.Error
-                            }
+                            state.akai?.close()
+                            state.akai = null
+                            state.status = Status.Ready
                         }
                     ) {
                         Icon(painterResource("stop.svg"), contentDescription = "Stop")
