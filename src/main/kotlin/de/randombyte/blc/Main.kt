@@ -1,4 +1,4 @@
-package de.randombyte.baustellalightcontrol.de.randombyte.blc
+package de.randombyte.blc
 
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.layout.Arrangement
@@ -17,6 +17,7 @@ import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.application
 import de.randombyte.blc.midi.Akai
+import de.randombyte.blc.midi.VirtualMidiPort
 
 fun main() = application {
     MainWindow(
@@ -27,20 +28,67 @@ fun main() = application {
 private enum class Status(val text: String) {
     Ready("Ready"),
     Started("Started"),
-    Error("Error")
+    StartedWithRtl433("Started"),
+    Error("Error"),
+    ErrorHard("Hard error")
 }
 
-private class AppState {
-    var status by mutableStateOf(Status.Ready)
-    val rtl433 = Rtl433(onSignal = { data ->
-        oscPort?.send("/QlcPlus/$data", 1)
-    })
-    var akai by mutableStateOf<Akai?>(null)
+private class AppState(status: Status, midiOut: VirtualMidiPort?) {
+    var status by mutableStateOf(status)
 
-    init {
-        rtl433.init()
-        rtl433.start()
+    var midiOut by mutableStateOf(midiOut)
+    var akai by mutableStateOf<Akai?>(null)
+    var rtl433 by mutableStateOf<Rtl433?>(null)
+}
+
+// init the MIDI out port
+private fun initAppState(): AppState {
+    val midiOut = VirtualMidiPort.openPort()
+    return AppState(
+        status = if (midiOut != null) Status.Ready else Status.ErrorHard,
+        midiOut = midiOut
+    )
+}
+
+private fun startAkai(state: AppState): Boolean {
+    state.akai = Akai.findBestMatch()
+    val openSuccess = state.akai?.open(
+        onSignal = { signal ->
+            // TODO: forward normal signals to out Midi
+        },
+        onClose = {
+            println("Closing because input devices closed")
+            state.akai?.close()
+            state.akai = null
+            state.status = Status.Error
+        }
+    )
+    val success = state.akai != null && openSuccess == true
+    state.status = if (success) Status.Started else Status.Error
+    return success
+}
+
+private fun tryStartRtl433(state: AppState) {
+    val rtl433 = Rtl433(onSignal = { data ->
+        // TODO: map 4 buttons to 4 existing  midi.send(data)
+    })
+    if (rtl433.init() && rtl433.start()) {
+        state.rtl433 = rtl433
+        state.status = Status.StartedWithRtl433
+        println("RTL_433 initialised")
+    } else {
+        println("RTL_433 not initialised")
     }
+}
+
+private fun closeAkai(state: AppState) {
+    state.akai?.close()
+    state.akai = null
+}
+
+private fun closeRtl433(state: AppState) {
+    state.rtl433?.close()
+    state.rtl433 = null
 }
 
 @Composable
@@ -48,7 +96,7 @@ private class AppState {
 fun MainWindow(
     onCloseRequest: () -> Unit
 ) {
-    val state by remember { mutableStateOf(AppState()) }
+    val state by remember { mutableStateOf(initAppState()) }
 
     Window(
         onCloseRequest = {
@@ -76,13 +124,14 @@ fun MainWindow(
                 ) {
                     Icon(
                         when (state.status) {
-                            Status.Ready, Status.Started -> painterResource("circle.svg")
-                            Status.Error -> painterResource("error.svg")
+                            Status.Ready, Status.Started, Status.StartedWithRtl433 -> painterResource("circle.svg")
+                            Status.Error, Status.ErrorHard -> painterResource("error.svg")
                         },
                         tint = when (state.status) {
                             Status.Ready -> Color(0xFFFF8800) // orange
                             Status.Started -> Color.Green
-                            Status.Error -> Color.Red
+                            Status.StartedWithRtl433 -> Color.Blue
+                            Status.Error, Status.ErrorHard -> Color.Red
                         },
                         modifier = Modifier.padding(end = 16.dp),
                         contentDescription = "Status"
@@ -92,30 +141,20 @@ fun MainWindow(
 
                 Row {
                     IconButton(
-                        enabled = state.akai == null,
+                        enabled = state.status == Status.Ready,
                         onClick = {
-                            state.akai = Akai.findBestMatch()
-                            val openSuccess = state.akai?.open(
-                                onSignal = { signal ->
-                                    // TODO: forward normal signals to out Midi
-                                },
-                                onClose = {
-                                    println("Closing because input devices closed")
-                                    state.akai?.close()
-                                    state.akai = null
-                                    state.status = Status.Error
-                                }
-                            )
-                            state.status = if (state.akai == null || openSuccess != true) Status.Error else Status.Started
+                            if (startAkai(state)) {
+                                tryStartRtl433(state)
+                            }
                         }
                     ) {
                         Icon(painterResource("play-arrow.svg"), contentDescription = "Start")
                     }
                     IconButton(
-                        enabled = state.akai != null,
+                        enabled = state.status in listOf(Status.Started, Status.StartedWithRtl433, Status.Error),
                         onClick = {
-                            state.akai?.close()
-                            state.akai = null
+                            closeAkai(state)
+                            closeRtl433(state)
                             state.status = Status.Ready
                         }
                     ) {

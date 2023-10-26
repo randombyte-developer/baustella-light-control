@@ -1,4 +1,4 @@
-package de.randombyte.baustellalightcontrol.de.randombyte.blc
+package de.randombyte.blc
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -15,37 +15,56 @@ class Rtl433(val onSignal: (data: String) -> Unit) {
     }
 
     private var file: File? = null
+    private var process: Process? = null
 
-    fun init() {
-        if (file != null) throw Exception("Can't call init() twice!")
-
-        val tempFile = File.createTempFile("rtl_433_64bit_static", ".exe")
-        file = tempFile
-        this::class.java.classLoader.getResourceAsStream(FILE_NAME).use { inputStream ->
-            if (inputStream == null) throw Exception("Can't find $FILE_NAME in resources!")
-            Files.copy(inputStream, tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
+    fun init(): Boolean {
+        if (file != null) {
+            println("Can't call init() twice!")
+            return false
         }
-        tempFile.deleteOnExit()
+        try {
+            val tempFile = File.createTempFile("rtl_433_64bit_static", ".exe")
+            file = tempFile
+            this::class.java.classLoader.getResourceAsStream(FILE_NAME).use { inputStream ->
+                if (inputStream == null) {
+                    println("Can't find $FILE_NAME in resources!")
+                    return false
+                }
+                Files.copy(inputStream, tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
+            }
+            tempFile.deleteOnExit()
+        } catch (ex: Exception) {
+            println("Can't copy RTL_433 executable: ${ex.message}")
+            return false
+        }
+
+        return true
     }
 
-    fun start() {
-        val tempFile = file ?: throw Exception("Can't call start() before initialization!")
+    fun start(): Boolean {
+        val tempFile = file
+        if (tempFile == null) {
+            println("Can't call start() before initialization!")
+            return false
+        }
 
-        val process = ProcessBuilder(
+        //@formatter:off
+        process = ProcessBuilder(
             tempFile.absolutePath,
             "-R", "0", // disable all device protocols
             "-F", "json", // set output format to JSON
             "-X", "n=EV1527-Remote,m=OOK_PWM,s=369,l=1072,g=1400,r=12840,bits=25,repeats>=3,invert,unique" // set custom decoder
         ).start()
+        //@formatter:on
 
         Runtime.getRuntime().addShutdownHook(Thread {
-            if (process.isAlive) process.destroy()
+            close()
         })
 
         println("Started")
 
         Thread {
-            process.inputStream.bufferedReader().use { reader ->
+            process?.inputStream?.bufferedReader()?.use { reader ->
                 val json = Json {
                     ignoreUnknownKeys = true
                 }
@@ -64,5 +83,11 @@ class Rtl433(val onSignal: (data: String) -> Unit) {
                 }
             }
         }.start()
+
+        return true
+    }
+
+    fun close() {
+        if (process?.isAlive == true) process?.destroy()
     }
 }

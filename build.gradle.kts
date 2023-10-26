@@ -25,7 +25,7 @@ dependencies {
 val fatJar = task("fatJar", type = Jar::class) {
     archiveBaseName.set("${project.name}-fat")
     manifest {
-        attributes["Main-Class"] = "de.randombyte.baustellalightcontrol.MainKt"
+        attributes["Main-Class"] = "de.randombyte.blc.MainKt"
     }
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) })
@@ -40,7 +40,7 @@ tasks {
 
 compose.desktop {
     application {
-        mainClass = "de.randombyte.baustellalightcontrol.MainKt"
+        mainClass = "de.randombyte.blc.MainKt"
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
