@@ -19,217 +19,231 @@ package de.tobiaserichsen.tevm;
 
 public class TeVirtualMIDI {
 
-	/* default size of sysex-buffer */
-	private static final int TE_VM_DEFAULT_SYSEX_SIZE = 65535;
+    /* default size of sysex-buffer */
+    private static final int TE_VM_DEFAULT_SYSEX_SIZE = 65535;
 
-	/* TE_VM_LOGGING_MISC - log internal stuff (port enable, disable...) */
-	public static final int TE_VM_LOGGING_MISC = 1;
-	/* TE_VM_LOGGING_RX - log data received from the driver */
-	public static final int TE_VM_LOGGING_RX = 2;
-	/* TE_VM_LOGGING_TX - log data sent to the driver */
-	public static final int TE_VM_LOGGING_TX = 4;
+    /* TE_VM_LOGGING_MISC - log internal stuff (port enable, disable...) */
+    public static final int TE_VM_LOGGING_MISC = 1;
+    /* TE_VM_LOGGING_RX - log data received from the driver */
+    public static final int TE_VM_LOGGING_RX = 2;
+    /* TE_VM_LOGGING_TX - log data sent to the driver */
+    public static final int TE_VM_LOGGING_TX = 4;
 
-	/* TE_VM_FLAGS_PARSE_RX - parse incoming data into single, valid MIDI-commands */
-	public static final int TE_VM_FLAGS_PARSE_RX = 1;
-	/* TE_VM_FLAGS_PARSE_TX - parse outgoing data into single, valid MIDI-commands */
-	public static final int TE_VM_FLAGS_PARSE_TX = 2;
-	/* TE_VM_FLAGS_INSTANTIATE_RX_ONLY - Only the "midi-out" part of the port is created */
-	public static final int TE_VM_FLAGS_INSTANTIATE_RX_ONLY = 4;
-	/* TE_VM_FLAGS_INSTANTIATE_TX_ONLY - Only the "midi-in" part of the port is created */
-	public static final int TE_VM_FLAGS_INSTANTIATE_TX_ONLY = 8;
-	/* TE_VM_FLAGS_INSTANTIATE_BOTH - a bidirectional port is created */
-	public static final int TE_VM_FLAGS_INSTANTIATE_BOTH = 12;
+    /* TE_VM_FLAGS_PARSE_RX - parse incoming data into single, valid MIDI-commands */
+    public static final int TE_VM_FLAGS_PARSE_RX = 1;
+    /* TE_VM_FLAGS_PARSE_TX - parse outgoing data into single, valid MIDI-commands */
+    public static final int TE_VM_FLAGS_PARSE_TX = 2;
+    /* TE_VM_FLAGS_INSTANTIATE_RX_ONLY - Only the "midi-out" part of the port is created */
+    public static final int TE_VM_FLAGS_INSTANTIATE_RX_ONLY = 4;
+    /* TE_VM_FLAGS_INSTANTIATE_TX_ONLY - Only the "midi-in" part of the port is created */
+    public static final int TE_VM_FLAGS_INSTANTIATE_TX_ONLY = 8;
+    /* TE_VM_FLAGS_INSTANTIATE_BOTH - a bidirectional port is created */
+    public static final int TE_VM_FLAGS_INSTANTIATE_BOTH = 12;
 
 
-	public TeVirtualMIDI( String portName, int maxSysexLength, int flags, String manuId, String prodId ) {
+    public TeVirtualMIDI(String portName, int maxSysexLength, int flags, String manuId, String prodId) {
 
-		this.isOpen = false;
+        this.isOpen = false;
 
-		int error = nativePortCreateEx( portName, maxSysexLength, flags, manuId, prodId );
+        int error = nativePortCreateEx(portName, maxSysexLength, flags, manuId, prodId);
 
-		if ( 0 != error ) {
+        if (0 != error) {
 
-			TeVirtualMIDIException.ThrowExceptionForReasonCode( error );
+            TeVirtualMIDIException.ThrowExceptionForReasonCode(error);
 
-		}
+        }
 
-		this.isOpen = true;
+        this.isOpen = true;
 
-	}
+    }
 
-	public TeVirtualMIDI( String portName, int maxSysexLength, int flags ) {
+    public TeVirtualMIDI(String portName, int maxSysexLength, int flags) {
 
-		this.isOpen = false;
+        this.isOpen = false;
 
-		int error = nativePortCreate( portName, maxSysexLength, flags );
+        int error = nativePortCreate(portName, maxSysexLength, flags);
 
-		if ( 0 != error ) {
+        if (0 != error) {
 
-			TeVirtualMIDIException.ThrowExceptionForReasonCode( error );
+            TeVirtualMIDIException.ThrowExceptionForReasonCode(error);
 
-		}
+        }
 
-		this.isOpen = true;
+        this.isOpen = true;
 
-	}
+    }
 
 
-	public TeVirtualMIDI( String portName, int maxSysexLength ) {
+    public TeVirtualMIDI(String portName, int maxSysexLength) {
 
-		this( portName, maxSysexLength, TE_VM_FLAGS_PARSE_RX );
+        this(portName, maxSysexLength, TE_VM_FLAGS_PARSE_RX);
 
-	}
+    }
 
 
-	public TeVirtualMIDI( String portName ) {
+    public TeVirtualMIDI(String portName) {
 
-		this( portName, TE_VM_DEFAULT_SYSEX_SIZE, TE_VM_FLAGS_PARSE_RX );
+        this(portName, TE_VM_DEFAULT_SYSEX_SIZE, TE_VM_FLAGS_PARSE_RX);
 
-	}
+    }
 
 
-	public void shutdown( ) {
+    public void shutdown() {
 
-		int error = nativePortShutdown( this.handle );
+        int error = nativePortShutdown(this.handle);
 
-		if ( 0 != error ) {
+        if (0 != error) {
 
-			TeVirtualMIDIException.ThrowExceptionForReasonCode( error );
+            TeVirtualMIDIException.ThrowExceptionForReasonCode(error);
 
-		}
+        }
 
-	}
+    }
 
 
-	public void sendCommand( byte[] command ) {
+    public void sendCommand(byte[] command) {
 
-		if ( command.length == 0 ) {
+        if (command.length == 0) {
 
-			return;
+            return;
 
-		}
+        }
 
-		int error = nativeSendCommand( this.handle, command );
+        int error = nativeSendCommand(this.handle, command);
 
-		if ( 0 != error ) {
+        if (0 != error) {
 
-			TeVirtualMIDIException.ThrowExceptionForReasonCode( error );
+            TeVirtualMIDIException.ThrowExceptionForReasonCode(error);
 
-		}
+        }
 
-	}
+    }
 
 
-	public byte[] getCommand( ) {
+    public byte[] getCommand() {
 
-		this.getError = 0;
+        this.getError = 0;
 
-		byte[] result = nativeGetCommand( this.handle );
+        byte[] result = nativeGetCommand(this.handle);
 
-		if ( result.length == 0 ) {
+        if (result.length == 0) {
 
-			if ( 0 != this.getError ) {
+            if (0 != this.getError) {
 
-				TeVirtualMIDIException.ThrowExceptionForReasonCode( this.getError );
+                TeVirtualMIDIException.ThrowExceptionForReasonCode(this.getError);
 
-			}
+            }
 
-		}
+        }
 
-		return result;
+        return result;
 
-	}
+    }
 
-	public long[] getProcesses( ) {
+    public long[] getProcesses() {
 
-		this.getError = 0;
+        this.getError = 0;
 
-		long[] result = nativeGetProcesses( this.handle );
+        long[] result = nativeGetProcesses(this.handle);
 
-		if ( 0 != this.getError ) {
+        if (0 != this.getError) {
 
-			TeVirtualMIDIException.ThrowExceptionForReasonCode( this.getError );
+            TeVirtualMIDIException.ThrowExceptionForReasonCode(this.getError);
 
-		}
+        }
 
-		return result;
+        return result;
 
-	}
+    }
 
-	public native static int getVersionMajor();
-	public native static int getVersionMinor();
-	public native static int getVersionRelease();
-	public native static int getVersionBuild();
-	public native static String getVersionString();
-	
-	public native static int getDriverVersionMajor();
-	public native static int getDriverVersionMinor();
-	public native static int getDriverVersionRelease();
-	public native static int getDriverVersionBuild();
-	public native static String getDriverVersionString();
+    public native static int getVersionMajor();
 
-	public native static int logging( int flags );
+    public native static int getVersionMinor();
 
+    public native static int getVersionRelease();
 
-	private native int nativePortCreate( String portName, int maxSysexSize, int flags );
-	private native int nativePortCreateEx( String portName, int maxSysexSize, int flags, String manuId, String prodId );
-	private native int nativePortClose( long pointerReference );
-	private native int nativePortShutdown( long pointerReference );
-	private native int nativeSendCommand( long pointerReference, byte[] command );
-	private native byte[] nativeGetCommand( long pointerReference );
-	private native long[] nativeGetProcesses( long pointerReference );
+    public native static int getVersionBuild();
 
+    public native static String getVersionString();
 
-	@Override
-	protected void finalize() throws Throwable {
+    public native static int getDriverVersionMajor();
 
-		try {
+    public native static int getDriverVersionMinor();
 
-			if ( this.isOpen ) {
+    public native static int getDriverVersionRelease();
 
-				nativePortClose( this.handle );
+    public native static int getDriverVersionBuild();
 
-				this.isOpen = false;
+    public native static String getDriverVersionString();
 
-			}
+    public native static int logging(int flags);
 
-		} finally {
 
-			super.finalize();
+    private native int nativePortCreate(String portName, int maxSysexSize, int flags);
 
-		}
+    private native int nativePortCreateEx(String portName, int maxSysexSize, int flags, String manuId, String prodId);
 
-	}
+    private native int nativePortClose(long pointerReference);
 
+    private native int nativePortShutdown(long pointerReference);
 
-	private boolean isOpen;
+    private native int nativeSendCommand(long pointerReference, byte[] command);
 
+    private native byte[] nativeGetCommand(long pointerReference);
 
- 	static {
-   		try {
+    private native long[] nativeGetProcesses(long pointerReference);
 
-			System.loadLibrary( "teVirtualMIDI" );
 
-		} catch( UnsatisfiedLinkError ignored ) {
+    @Override
+    protected void finalize() throws Throwable {
 
-    			try {
+        try {
 
-				System.loadLibrary( "teVirtualMIDI32" );
+            if (this.isOpen) {
 
-			} catch( UnsatisfiedLinkError ignored2 ) {
+                nativePortClose(this.handle);
 
-				System.loadLibrary( "teVirtualMIDI64" );
+                this.isOpen = false;
 
-			}
-		}
+            }
 
-	}
+        } finally {
 
+            super.finalize();
 
-	// Never, ever change the following part of the class, since it is
-	// used from within the native-JNI-DLL to store the object pointer
-	// to the native teVirtualMIDI instance!
-	private long handle;
-	private int getError;
+        }
+
+    }
+
+
+    private boolean isOpen;
+
+
+    static {
+        try {
+
+            System.loadLibrary("teVirtualMIDI");
+
+        } catch (UnsatisfiedLinkError ignored) {
+
+            try {
+
+                System.loadLibrary("teVirtualMIDI32");
+
+            } catch (UnsatisfiedLinkError ignored2) {
+
+                System.loadLibrary("teVirtualMIDI64");
+
+            }
+        }
+
+    }
+
+
+    // Never, ever change the following part of the class, since it is
+    // used from within the native-JNI-DLL to store the object pointer
+    // to the native teVirtualMIDI instance!
+    private long handle;
+    private int getError;
 
 }
