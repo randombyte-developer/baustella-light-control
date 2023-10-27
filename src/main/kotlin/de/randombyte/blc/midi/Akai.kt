@@ -27,7 +27,7 @@ class Akai(inDevice: MidiDevice, outDevice: MidiDevice) : MidiHandler(inDevice, 
 
     fun open(onSignal: (Signal) -> Unit, onClose: () -> Unit): Boolean {
         if (!open()) return false
-        enableSpecialMode()
+        //enableSpecialMode()
         sendMapping("Baustella")
         setupAsyncListener(onSignal, onClose)
         return true
@@ -75,6 +75,7 @@ class Akai(inDevice: MidiDevice, outDevice: MidiDevice) : MidiHandler(inDevice, 
 
     fun sendMapping(name: String) {
         println("Sending mapping to Akai")
-        outDevice.receiver.send(SysexMessage(SysEx.createMappingWithName(name), SysEx.MAPPING_LENGTH), -1)
+        val mapping = SysEx.generate(name)
+        outDevice.receiver.send(SysexMessage(mapping, mapping.size), -1)
     }
 }

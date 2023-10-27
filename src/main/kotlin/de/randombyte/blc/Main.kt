@@ -18,6 +18,7 @@ import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.application
 import de.randombyte.blc.midi.Akai
 import de.randombyte.blc.midi.VirtualMidiPort
+import kotlin.math.sign
 
 fun main() = application {
     MainWindow(
@@ -54,7 +55,7 @@ private fun startAkai(state: AppState): Boolean {
     state.akai = Akai.findBestMatch()
     val openSuccess = state.akai?.open(
         onSignal = { signal ->
-            // TODO: forward normal signals to out Midi
+            state.midiOut?.send(signal)
         },
         onClose = {
             println("Closing because input devices closed")
