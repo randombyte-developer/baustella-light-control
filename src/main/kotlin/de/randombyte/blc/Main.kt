@@ -19,7 +19,12 @@ import androidx.compose.ui.window.application
 import de.randombyte.blc.midi.Akai
 import de.randombyte.blc.midi.Signal
 import de.randombyte.blc.midi.VirtualMidiPort
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlin.math.sign
+import kotlin.time.Duration.Companion.seconds
 
 fun main() = application {
     MainWindow(
@@ -48,7 +53,17 @@ private class AppState(status: Status, midiOut: VirtualMidiPort?) {
 
 // init the MIDI out port
 private fun initAppState(): AppState {
+    // first open the virtual port
     val midiOut = VirtualMidiPort.openPort()
+
+    // then start QLC+, which should be able to see the port instantly
+    if (!QlcPlus.isRunning()) {
+        val project = QlcPlus.findTheOnlyProjectFile()
+        if (project != null) {
+            QlcPlus.start(project)
+        }
+    }
+
     return AppState(
         status = if (midiOut != null) Status.Ready else Status.ErrorHard,
         midiOut = midiOut
