@@ -3,6 +3,10 @@ package de.randombyte.blc.midi
 import javax.sound.midi.*
 
 @OptIn(ExperimentalUnsignedTypes::class)
+/**
+ * The mapping that is sent to the Akai is trying to be as close as possible to the default "Stylus" mapping (number: 12) to keep compatibility with QLC+
+ * projects. If this program doesn't work at some point, the QLC+ project will still mostly work with the Stylus mapping.
+ */
 class Akai(inDevice: MidiDevice, outDevice: MidiDevice) : MidiHandler(inDevice, outDevice) {
     companion object {
         private const val AKAI_NAME = "MPD26"
@@ -90,15 +94,23 @@ class Akai(inDevice: MidiDevice, outDevice: MidiDevice) : MidiHandler(inDevice, 
     private val MAPPING_AFTER_NAME = listOf(0x20, 0x78, 0x01, 0x07, 0x01, 0x32, 0x3A, 0x03)
 
     data class Pad(val value: Int)
-    private fun generateBank(pads: List<Pad>): List<Int> {
+    private fun generatePadsBank(pads: List<Pad>): List<Int> {
         assert(pads.size == 16)
         return pads.flatMap { listOf(0x03, 0x00, it.value, 0x00, 0x00, 0x00, 0x00, 0x00) }
     }
 
-    private val BANK_A = generateBank((0x24..0x33).map { Pad(value = it) })
-    private val BANK_B = generateBank((0x34..0x43).map { Pad(value = it) })
-    private val BANK_C = generateBank((0x44..0x53).map { Pad(value = it) })
-    private val BANK_D = generateBank((0x54..0x63).map { Pad(value = it) })
+    data class Fader(val value: Int)
+    private fun generateFaders(faders: List<Fader>): List<Int> {
+        assert(faders.size == 6)
+        return faders.flatMap { listOf(0x00, 0x01, it.value, 0x00, 0x7F) }
+    }
+
+    private val BANK_A = generatePadsBank((0x24..0x33).map { Pad(value = it) })
+    private val BANK_B = generatePadsBank((0x34..0x43).map { Pad(value = it) })
+    private val BANK_C = generatePadsBank((0x44..0x53).map { Pad(value = it) })
+    private val BANK_D = generatePadsBank((0x54..0x63).map { Pad(value = it) })
+
+    private val FADERS = generateFaders(listOf(0x03, 0x04, 0x05, 0x06, 0x08, 0x09).map { Fader(value = it) })
 
     private val MAPPING_AFTER_BANKS = listOf(
         0x00, 0x01, 0x0F, 0x00, 0x7F, 0x7F, 0x7F, 0x00,
@@ -106,10 +118,7 @@ class Akai(inDevice: MidiDevice, outDevice: MidiDevice) : MidiHandler(inDevice, 
         0x0D, 0x00, 0x7F, 0x7F, 0x7F, 0x00, 0x01, 0x0E,
         0x00, 0x7F, 0x7F, 0x7F, 0x00, 0x01, 0x0B, 0x00,
         0x7F, 0x7F, 0x7F, 0x00, 0x01, 0x0C, 0x00, 0x7F,
-        0x7F, 0x7F, 0x00, 0x01, 0x01, 0x00, 0x7F, 0x00,
-        0x01, 0x02, 0x00, 0x7F, 0x00, 0x01, 0x03, 0x00,
-        0x7F, 0x00, 0x01, 0x04, 0x00, 0x7F, 0x00, 0x01,
-        0x05, 0x00, 0x7F, 0x00, 0x01, 0x06, 0x00, 0x7F, 0xF7
+        0x7F, 0x7F
     )
 
     private val MAPPING_NAME_LENGTH = 8
@@ -122,7 +131,9 @@ class Akai(inDevice: MidiDevice, outDevice: MidiDevice) : MidiHandler(inDevice, 
         BANK_B,
         BANK_C,
         BANK_D,
-        MAPPING_AFTER_BANKS
+        MAPPING_AFTER_BANKS,
+        FADERS,
+        listOf(0x07)
     ).flatten()
 
     fun MidiDevice.sendSysex(data: List<Int>) {
