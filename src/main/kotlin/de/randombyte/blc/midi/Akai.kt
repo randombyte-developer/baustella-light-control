@@ -105,6 +105,12 @@ class Akai(inDevice: MidiDevice, outDevice: MidiDevice) : MidiHandler(inDevice, 
         return faders.flatMap { listOf(0x00, 0x01, it.value, 0x00, 0x7F) }
     }
 
+    data class Poti(val value: Int)
+    private fun generatePotis(potis: List<Poti>): List<Int> {
+        assert(potis.size == 6)
+        return potis.flatMap { listOf(0x00, 0x01, it.value, 0x00, 0x7F, 0x7F, 0x7F) }
+    }
+
     private val BANK_A = generatePadsBank((0x24..0x33).map { Pad(value = it) })
     private val BANK_B = generatePadsBank((0x34..0x43).map { Pad(value = it) })
     private val BANK_C = generatePadsBank((0x44..0x53).map { Pad(value = it) })
@@ -112,14 +118,8 @@ class Akai(inDevice: MidiDevice, outDevice: MidiDevice) : MidiHandler(inDevice, 
 
     private val FADERS = generateFaders(listOf(0x03, 0x04, 0x05, 0x06, 0x08, 0x09).map { Fader(value = it) })
 
-    private val MAPPING_AFTER_BANKS = listOf(
-        0x00, 0x01, 0x0F, 0x00, 0x7F, 0x7F, 0x7F, 0x00,
-        0x01, 0x10, 0x00, 0x7F, 0x7F, 0x7F, 0x00, 0x01,
-        0x0D, 0x00, 0x7F, 0x7F, 0x7F, 0x00, 0x01, 0x0E,
-        0x00, 0x7F, 0x7F, 0x7F, 0x00, 0x01, 0x0B, 0x00,
-        0x7F, 0x7F, 0x7F, 0x00, 0x01, 0x0C, 0x00, 0x7F,
-        0x7F, 0x7F
-    )
+    // order of potis: bottom left, bottom right, middle left, middle right, top left, top right
+    private val POTIS = generatePotis(listOf(0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12).map { Poti(value = it) })
 
     private val MAPPING_NAME_LENGTH = 8
 
@@ -131,7 +131,7 @@ class Akai(inDevice: MidiDevice, outDevice: MidiDevice) : MidiHandler(inDevice, 
         BANK_B,
         BANK_C,
         BANK_D,
-        MAPPING_AFTER_BANKS,
+        POTIS,
         FADERS,
         listOf(0x07)
     ).flatten()
