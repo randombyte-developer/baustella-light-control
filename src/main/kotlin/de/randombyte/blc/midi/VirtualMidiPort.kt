@@ -3,7 +3,6 @@ package de.randombyte.blc.midi
 import de.tobiaserichsen.tevm.TeVirtualMIDI
 import de.tobiaserichsen.tevm.TeVirtualMIDIException
 
-@OptIn(ExperimentalUnsignedTypes::class)
 class VirtualMidiPort(private val port: TeVirtualMIDI) {
     companion object {
         fun openPort() = try {
