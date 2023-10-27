@@ -31,7 +31,7 @@ class Akai(inDevice: MidiDevice, outDevice: MidiDevice) : MidiHandler(inDevice, 
 
     fun open(onSignal: (Signal) -> Unit, onClose: () -> Unit): Boolean {
         if (!open()) return false
-        //enableSpecialMode()
+        enableSpecialMode()
         sendMapping("Baustella")
         setupAsyncListener(onSignal, onClose)
         return true
@@ -41,23 +41,45 @@ class Akai(inDevice: MidiDevice, outDevice: MidiDevice) : MidiHandler(inDevice, 
     private fun setupAsyncListener(onSignal: (Signal) -> Unit, onClose: () -> Unit) {
         inDevice.transmitter.receiver = object : Receiver {
             override fun send(message: MidiMessage, timestamp: Long) {
-                val data = message.message
-                println("Input: ${data.joinToString { it.toHexString(HexFormat.UpperCase) }}")
+                val data = message.message.map { it.toInt() }
+                println("Input: ${data.joinToString { it.toByte().toHexString(HexFormat.UpperCase) }}")
 
                 val signal = when (data.size) {
+                    // normal MIDI message
                     3 -> Signal(
-                        type = data[0].toUByte(),
-                        control = data[1].toUByte(),
-                        value = data[2].toUByte()
+                        type = data[0],
+                        control = data[1],
+                        value = data[2]
                     )
 
-                    10 -> null // TODO: handle special buttons by parsing SysEx messages
+                    // parse Sysex messages and forward some as if they were normal MIDI messages
+                    10 -> {
+                        // These buttons where chosen because they don't change any important behavior of the Akai controller itself.
+                        // Mapping the "16 levels" button or other directly affect what the other buttons do or show confusing things in the display
+                        val supportedButtons = listOf(
+                            0x00, // full level
+                            0x02, // preset
+                            0x05, // cancel
+                            0x0D, // preview
+                            0x15, // note repeat (led toggles internally)
+                            0x16, // tap tempo
+                            0x17, // time division
+                        )
+                        val button = data[7]
+                        val value = data[8]
+                        if (button in supportedButtons) {
+                                Signal(type = 0x91, control = button, value = value)
+                        } else null
+                    }
                     else -> null
                 }
+
                 if (signal == null) {
                     println("Ignoring input")
                     return
                 }
+
+                println("Parsed as input ${signal}")
 
                 onSignal(signal)
             }
@@ -80,7 +102,6 @@ class Akai(inDevice: MidiDevice, outDevice: MidiDevice) : MidiHandler(inDevice, 
     fun sendMapping(name: String) {
         println("Sending mapping to Akai")
         outDevice.sendSysex(generateMapping(name))
-        outDevice.sendSysex(listOf(0xf0, 0x47, 0x00, 0x78, 0x38, 0x00, 0x04, 0x00, 0x00, 0x0e, 0x00, 0xf7))
     }
 
     private val SYSEX_START = ubyteArrayOf(0xF0u, 0x47u, 0x0u, 0x78u)
@@ -91,21 +112,27 @@ class Akai(inDevice: MidiDevice, outDevice: MidiDevice) : MidiHandler(inDevice, 
     val SYSEX_SPECIAL_MODE = ubyteArrayOf(0xF0u, 0x47u, 0x00u, 0x78u, 0x30u, 0x00u, 0x04u, 0x01u, 0x00u, 0x00u, 0x38u, 0xF7u)
 
     private val MAPPING_START = listOf(0xF0, 0x47, 0x00, 0x78, 0x10, 0x04, 0x59, 0x00)
+
+    // here's probably the 5 button configuration to MIDI control message types, it should be one setting for the whole group of 5 buttons
+    // currently it is set correctly
     private val MAPPING_AFTER_NAME = listOf(0x20, 0x78, 0x01, 0x07, 0x01, 0x32, 0x3A, 0x03)
 
     data class Pad(val value: Int)
+
     private fun generatePadsBank(pads: List<Pad>): List<Int> {
         assert(pads.size == 16)
         return pads.flatMap { listOf(0x03, 0x00, it.value, 0x00, 0x00, 0x00, 0x00, 0x00) }
     }
 
     data class Fader(val value: Int)
+
     private fun generateFaders(faders: List<Fader>): List<Int> {
         assert(faders.size == 6)
         return faders.flatMap { listOf(0x00, 0x01, it.value, 0x00, 0x7F) }
     }
 
     data class Poti(val value: Int)
+
     private fun generatePotis(potis: List<Poti>): List<Int> {
         assert(potis.size == 6)
         return potis.flatMap { listOf(0x00, 0x01, it.value, 0x00, 0x7F, 0x7F, 0x7F) }

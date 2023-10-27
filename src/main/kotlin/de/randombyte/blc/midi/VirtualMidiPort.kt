@@ -23,7 +23,7 @@ class VirtualMidiPort(private val port: TeVirtualMIDI) {
     }
 
     fun send(signal: Signal) {
-        port.sendCommand(signal.uByteArray.toByteArray())
+        port.sendCommand(signal.uByteArray)
     }
 
     fun close() {

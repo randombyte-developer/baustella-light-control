@@ -1,14 +1,11 @@
 package de.randombyte.blc.midi
 
-@OptIn(ExperimentalUnsignedTypes::class)
-data class Signal(val type: UByte, val control: UByte, val value: UByte) {
-    val uByteArray: UByteArray
-        get() = ubyteArrayOf(type, control, value)
+data class Signal(val type: Int, val control: Int, val value: Int) {
+    val uByteArray: ByteArray
+        get() = byteArrayOf(type.toByte(), control.toByte(), value.toByte())
 
-    companion object {
-        fun fromUByteArray(uByteArray: UByteArray): Signal {
-            assert(uByteArray.size == 3)
-            return Signal(uByteArray[0], uByteArray[1], uByteArray[2])
-        }
+    @OptIn(ExperimentalStdlibApi::class)
+    override fun toString(): String {
+        return "type=0x${type.toByte().toHexString()}, control=0x${control.toByte().toHexString()}, value=0x${value.toByte().toHexString()}"
     }
 }
