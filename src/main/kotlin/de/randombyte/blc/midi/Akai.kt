@@ -68,7 +68,9 @@ class Akai(inDevice: MidiDevice, outDevice: MidiDevice) : MidiHandler(inDevice, 
                         val button = data[7]
                         val value = data[8]
                         if (button in supportedButtons) {
-                            Signal(type = 0x91, control = button, value = value)
+                            // 0x63 is the highest used control in the mapping below (for a pad in bank D).
+                            // By adding 0x63 to the controls here, there can be no collision. 0x63 + 0x17 = 0x7A < 0x7F
+                            Signal(type = 0x90, control = button + 0x63, value = value)
                         } else null
                     }
 
