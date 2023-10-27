@@ -17,6 +17,7 @@ import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.application
 import de.randombyte.blc.midi.Akai
+import de.randombyte.blc.midi.Signal
 import de.randombyte.blc.midi.VirtualMidiPort
 import kotlin.math.sign
 
@@ -40,6 +41,9 @@ private class AppState(status: Status, midiOut: VirtualMidiPort?) {
     var midiOut by mutableStateOf(midiOut)
     var akai by mutableStateOf<Akai?>(null)
     var rtl433 by mutableStateOf<Rtl433?>(null)
+
+    val remoteMapping = mutableStateMapOf<String, Signal>()
+    var lastRemoteData by mutableStateOf<String?>(null)
 }
 
 // init the MIDI out port
@@ -56,6 +60,13 @@ private fun startAkai(state: AppState): Boolean {
     val openSuccess = state.akai?.open(
         onSignal = { signal ->
             state.midiOut?.send(signal)
+
+            // learn mapping
+            val lastRemoteData = state.lastRemoteData
+            if (lastRemoteData != null && !state.remoteMapping.containsKey(lastRemoteData)) {
+                println("Learned new mapping: $lastRemoteData -> $signal")
+                state.remoteMapping[lastRemoteData] = signal
+            }
         },
         onClose = {
             println("Closing because input devices closed")
@@ -71,7 +82,11 @@ private fun startAkai(state: AppState): Boolean {
 
 private fun tryStartRtl433(state: AppState) {
     val rtl433 = Rtl433(onSignal = { data ->
-        // TODO: map 4 buttons to 4 existing  midi.send(data)
+        state.lastRemoteData = data
+        // simulate MIDI message from learned mapping
+        val signal = state.remoteMapping[data] ?: return@Rtl433
+        println("Found mapping")
+        state.midiOut?.send(signal)
     })
     if (rtl433.init() && rtl433.start()) {
         state.rtl433 = rtl433
@@ -156,6 +171,7 @@ fun MainWindow(
                         onClick = {
                             closeAkai(state)
                             closeRtl433(state)
+                            state.remoteMapping.clear()
                             state.status = Status.Ready
                         }
                     ) {

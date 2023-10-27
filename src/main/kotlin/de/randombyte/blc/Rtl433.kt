@@ -78,7 +78,7 @@ class Rtl433(val onSignal: (data: String) -> Unit) {
                         continue
                     }
 
-                    println("Received signal: ${signalOutput.data}")
+                    println("Received RTL433 data: ${signalOutput.data}")
                     onSignal(signalOutput.data)
                 }
             }

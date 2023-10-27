@@ -22,6 +22,7 @@ class VirtualMidiPort(private val port: TeVirtualMIDI) {
     }
 
     fun send(signal: Signal) {
+        println("Sending $signal")
         port.sendCommand(signal.uByteArray)
     }
 
