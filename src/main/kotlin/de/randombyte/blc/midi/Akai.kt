@@ -40,41 +40,41 @@ class Akai(inDevice: MidiDevice, outDevice: MidiDevice) : MidiHandler(inDevice, 
                 val data = message.message
                 println("Input: ${data.joinToString { it.toHexString(HexFormat.UpperCase) }}")
 
-                        val signal = when (data.size) {
-                            3 -> Signal(
-                                type = data[0].toUByte(),
-                                control = data[1].toUByte(),
-                                value = data[2].toUByte()
-                            )
+                val signal = when (data.size) {
+                    3 -> Signal(
+                        type = data[0].toUByte(),
+                        control = data[1].toUByte(),
+                        value = data[2].toUByte()
+                    )
 
-                            10 -> null // TODO: handle special buttons by parsing SysEx messages
-                            else -> null
-                        }
-                        if (signal == null) {
-                            println("Ignoring input")
-                            return
-                        }
+                    10 -> null // TODO: handle special buttons by parsing SysEx messages
+                    else -> null
+                }
+                if (signal == null) {
+                    println("Ignoring input")
+                    return
+                }
 
-                                onSignal (signal)
-                    }
+                onSignal(signal)
+            }
 
-                            override fun close() {
-                        onClose()
-                    }
+            override fun close() {
+                onClose()
             }
         }
-
-        /**
-         * Sends a special SysEx message to the device to make it send every button press, even those that aren't mapped to
-         * any midi signal. This is the mode the official editor operates in.
-         */
-        private fun enableSpecialMode() {
-            println("Enabling special Akai MIDI mode")
-            sendSysEx(SysEx.SYSEX_SPECIAL_MODE)
-        }
-
-        fun sendMapping(name: String) {
-            println("Sending mapping to Akai")
-            outDevice.receiver.send(SysexMessage(SysEx.createMappingWithName(name), SysEx.MAPPING_LENGTH), -1)
-        }
     }
+
+    /**
+     * Sends a special SysEx message to the device to make it send every button press, even those that aren't mapped to
+     * any midi signal. This is the mode the official editor operates in.
+     */
+    private fun enableSpecialMode() {
+        println("Enabling special Akai MIDI mode")
+        sendSysEx(SysEx.SYSEX_SPECIAL_MODE)
+    }
+
+    fun sendMapping(name: String) {
+        println("Sending mapping to Akai")
+        outDevice.receiver.send(SysexMessage(SysEx.createMappingWithName(name), SysEx.MAPPING_LENGTH), -1)
+    }
+}
