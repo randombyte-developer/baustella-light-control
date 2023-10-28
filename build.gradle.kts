@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "de.randombyte"
-version = "2.0.0"
+version = "3.0.0"
 
 repositories {
     mavenCentral()
@@ -45,7 +45,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "baustella-light-control"
-            packageVersion = "2.0.0"
+            packageVersion = "3.0.0"
         }
     }
 }
