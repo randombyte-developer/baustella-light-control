@@ -59,7 +59,10 @@ private fun initAppState(): AppState {
     if (!QlcPlus.isRunning()) {
         val project = QlcPlus.findTheOnlyProjectFile()
         if (project != null) {
+            println("Found unique QLC+ project file")
             QlcPlus.start(project)
+        } else {
+            println("Didn't find unique QLC+ project file")
         }
     }
 

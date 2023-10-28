@@ -16,8 +16,9 @@ object QlcPlus {
 
     fun findTheOnlyProjectFile(): File? {
         val home = System.getProperty("user.home")
-        return File(home)
-            .resolve("Documents")
+        val documents = File(home).resolve("Documents")
+        println("Documents directory: ${documents.absolutePath}")
+        return documents
             .walk()
             .maxDepth(1)
             .filter { it.isFile }
