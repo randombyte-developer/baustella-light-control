@@ -19,12 +19,6 @@ import androidx.compose.ui.window.application
 import de.randombyte.blc.midi.Akai
 import de.randombyte.blc.midi.Signal
 import de.randombyte.blc.midi.VirtualMidiPort
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlin.math.sign
-import kotlin.time.Duration.Companion.seconds
 
 fun main() = application {
     MainWindow(
@@ -103,10 +97,20 @@ private fun tryStartRtl433(state: AppState) {
         println("Found mapping")
         state.midiOut?.send(signal)
     })
-    if (rtl433.init() && rtl433.start()) {
-        state.rtl433 = rtl433
-        state.status = Status.StartedWithRtl433
-        println("RTL_433 initialised")
+    if (rtl433.init()) {
+        val startSuccess = rtl433.start(onClose = {
+            closeRtl433(state)
+            // "downgrade" status if RTL433 was closed
+            if (state.status == Status.StartedWithRtl433) {
+                state.status = Status.Started
+            }
+        })
+
+        if (startSuccess) {
+            state.rtl433 = rtl433
+            state.status = Status.StartedWithRtl433
+            println("RTL_433 initialised")
+        }
     } else {
         println("RTL_433 not initialised")
     }
@@ -131,7 +135,7 @@ fun MainWindow(
 
     Window(
         onCloseRequest = {
-            if (state.status != Status.Started) onCloseRequest()
+            if (state.status !in listOf(Status.Started, Status.StartedWithRtl433)) onCloseRequest()
         },
         state = WindowState(
             width = 350.dp,

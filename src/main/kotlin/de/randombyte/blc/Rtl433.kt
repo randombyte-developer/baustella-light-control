@@ -41,7 +41,7 @@ class Rtl433(val onSignal: (data: String) -> Unit) {
         return true
     }
 
-    fun start(): Boolean {
+    fun start(onClose: () -> Unit): Boolean {
         val tempFile = file
         if (tempFile == null) {
             println("Can't call start() before initialization!")
@@ -81,6 +81,9 @@ class Rtl433(val onSignal: (data: String) -> Unit) {
                     println("Received RTL433 data: ${signalOutput.data}")
                     onSignal(signalOutput.data)
                 }
+
+                println("RTL433 terminated")
+                onClose()
             }
         }.start()
 
