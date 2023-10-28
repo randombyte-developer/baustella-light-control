@@ -19,6 +19,11 @@ import androidx.compose.ui.window.application
 import de.randombyte.blc.midi.Akai
 import de.randombyte.blc.midi.Signal
 import de.randombyte.blc.midi.VirtualMidiPort
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.seconds
 
 fun main() = application {
     MainWindow(
@@ -89,6 +94,7 @@ private fun startAkai(state: AppState): Boolean {
     return success
 }
 
+@OptIn(DelicateCoroutinesApi::class)
 private fun tryStartRtl433(state: AppState) {
     val rtl433 = Rtl433(onSignal = { data ->
         state.lastRemoteData = data
@@ -107,8 +113,13 @@ private fun tryStartRtl433(state: AppState) {
         })
 
         if (startSuccess) {
+            // Delay changing icon to RTL433 because RTL433 takes half a second to realize that there is no RTLSDR hardware connected to the PC.
+            // By delaying the icon, it doesn't flicker.
+            GlobalScope.launch {
+                delay(1.seconds)
+                if (state.rtl433 != null && state.status == Status.Started) state.status = Status.StartedWithRtl433
+            }
             state.rtl433 = rtl433
-            state.status = Status.StartedWithRtl433
             println("RTL_433 initialised")
         }
     } else {
