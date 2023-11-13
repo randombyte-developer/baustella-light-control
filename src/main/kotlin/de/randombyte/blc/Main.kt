@@ -23,6 +23,11 @@ import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.deepsymmetry.libcarabiner.Message
+import org.deepsymmetry.libcarabiner.Runner
+import java.net.InetAddress
+import java.net.Socket
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 fun main() = application {
@@ -63,6 +68,40 @@ private fun initAppState(): AppState {
             QlcPlus.start(project)
         } else {
             println("Didn't find unique QLC+ project file")
+        }
+    }
+
+    val carabiner = Runner.getInstance()
+    if (carabiner.canRunCarabiner()) {
+        println("can run carabiner")
+
+        Runtime.getRuntime().addShutdownHook(Thread {
+            carabiner.stop()
+        })
+
+        val port = 17_000
+        carabiner.setPort(port)
+        carabiner.start()
+
+        Thread.sleep(1000)
+
+        val socket = Socket(InetAddress.getLoopbackAddress(), port)
+        GlobalScope.launch {
+            socket.getInputStream().bufferedReader().use { reader ->
+                while (true) {
+                    println(reader.readLine())
+                }
+            }
+        }
+
+        GlobalScope.launch {
+            socket.getOutputStream().writer().use { writer ->
+                while (true) {
+                    writer.write("status\n")
+                    writer.flush()
+                    delay(50.milliseconds)
+                }
+            }
         }
     }
 

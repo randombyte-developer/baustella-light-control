@@ -19,7 +19,7 @@ repositories {
 dependencies {
     implementation(compose.desktop.currentOs)
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
-    implementation("com.illposed.osc:javaosc-core:0.8")
+    implementation("org.deepsymmetry:lib-carabiner:1.1.6")
 }
 
 val fatJar = task("fatJar", type = Jar::class) {
