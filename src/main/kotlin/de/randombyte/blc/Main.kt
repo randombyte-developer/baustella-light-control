@@ -27,6 +27,7 @@ import org.deepsymmetry.libcarabiner.Message
 import org.deepsymmetry.libcarabiner.Runner
 import java.net.InetAddress
 import java.net.Socket
+import kotlin.math.nextDown
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
@@ -87,9 +88,21 @@ private fun initAppState(): AppState {
 
         val socket = Socket(InetAddress.getLoopbackAddress(), port)
         GlobalScope.launch {
+            var lastBeat = 0
             socket.getInputStream().bufferedReader().use { reader ->
                 while (true) {
-                    println(reader.readLine())
+                    val line = reader.readLine()
+                    val message = Message(line)
+                    val beat = message.details["beat"] as Double
+                    val bpm = message.details["bpm"] as Double
+                    val thisBeat = beat.toInt()
+                    val onBeat = thisBeat != lastBeat
+                    lastBeat = thisBeat
+
+                    if (onBeat) {
+                        midiOut?.send(Signal(type = 0x90, control = 0x01, value = 1))
+                        println("Beat ${bpm.toInt()} $thisBeat")
+                    }
                 }
             }
         }
